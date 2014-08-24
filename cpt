@@ -1,0 +1,659 @@
+var game = new Phaser.Game(640, 712, Phaser.CANVAS);
+setTimeout(function() {
+    game.state.add("boot", MainGame.Boot, true);
+    game.state.add("preloader", MainGame.Preloader);
+    game.state.add("menu", MainGame.MainMenu);
+    game.state.add("levelmenu", MainGame.LevelMenu);
+    game.state.add("game", MainGame.Game)
+}, 1);
+var MainGame = {
+    orientated: false,
+    muteMusic: false,
+    nextState: null,
+    fadeColor: 0,
+    textFPS: null,
+    style: {
+        font: "70px dock11regular",
+        fill: "#ffffff",
+        align: "center"
+    },
+    style2: {
+        font: "50px dock11regular",
+        fill: "#843E2D",
+        align: "center"
+    },
+    showFPS: false
+};
+var mouse = null;
+var whatDirection = true;
+var isGameOver = false;
+var isPlayGame = false;
+var isTapToStart = false;
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min
+}
+function clickLogo() {
+    var win = window.open("http://a10.com", "_blank");
+    win.focus()
+}
+function clickShare1() {
+    var win = window.open("http://www.twitter.com/share?text=Now+I+play+the+new+amazing+HTML5+online+game+Swing+Chopper+on+http://a10.com", "_blank");
+    win.focus()
+}
+function goToState(pNextState) {
+    game.tweens.removeAll();
+    var spr_bg = this.game.add.graphics(0, 0);
+    spr_bg.beginFill(MainGame.fadeColor, 1);
+    spr_bg.drawRect(0, 0, this.game.width, this.game.height);
+    spr_bg.alpha = 0;
+    spr_bg.endFill();
+    MainGame.nextState = pNextState;
+    var s = this.game.add.tween(spr_bg);
+    s.to({
+        alpha: 1
+    }, 400, null);
+    s.onComplete.add(this.changeState, this);
+    s.start()
+}
+function goChangeState(pNextState) {
+    game.tweens.removeAll();
+    var spr_bg = this.game.state.states.game.fixedScreen.add(this.game.add.graphics(0, 0));
+    spr_bg.beginFill(MainGame.fadeColor, 1);
+    spr_bg.drawRect(0, 0, this.game.width, this.game.height);
+    spr_bg.alpha = 0;
+    spr_bg.endFill();
+    MainGame.nextState = pNextState;
+    var s = this.game.add.tween(spr_bg);
+    s.to({
+        alpha: 1
+    }, 400, null);
+    s.onComplete.add(this.changeState, this);
+    s.start()
+}
+function changeState() {
+    this.game.state.start(MainGame.nextState);
+    if (MainGame.isNextLevel)
+        this.game.state.start("game");
+    this.fadeOut()
+}
+function fadeOut() {
+    var spr_bg = this.game.add.graphics(0, 0);
+    spr_bg.beginFill(MainGame.fadeColor, 1);
+    spr_bg.drawRect(0, 0, this.game.width, this.game.height);
+    spr_bg.alpha = 1;
+    spr_bg.endFill();
+    game.add.tween(spr_bg).to({
+        alpha: 0
+    }, 300, Phaser.Easing.Linear.None).start()
+}
+function muteSounds(btn) {
+    if (game.sound.mute)
+        btn.loadTexture("button-sound1");
+    else 
+        btn.loadTexture("button-sound2");
+    game.sound.mute=!game.sound.mute;
+    MainGame.isMusicMuted = game.sound.mute
+}
+MainGame.Boot = function(game) {};
+MainGame.Boot.prototype = {
+    preload: function() {
+        this.load.image("preloaderBackground", "assets/preloader_background.png?r=6");
+        this.load.image("preloaderBar", "assets/preloadr_bar.png?r=6");
+        this.load.image("menu-back", "assets/backgrounds/menu.png?r=6");
+        this.load.image("logoA10", "assets/A10_200x62.png")
+    },
+    create: function() {
+        var text = game.add.text(0, 0, "0", MainGame.style);
+        text.destroy();
+        this.input.maxPointers = 1;
+        this.stage.disableVisibilityChange = true;
+        this.game.raf.forceSetTimeOut = true;
+        if (this.game.device.desktop) {
+            this.scale.scaleMode =
+            Phaser.ScaleManager.SHOW_ALL;
+            this.scale.pageAlignHorizontally = true;
+            this.scale.setScreenSize(true)
+        } else {
+            this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+            this.scale.pageAlignHorizontally = true;
+            this.scale.forceOrientation(false, true);
+            this.scale.enterIncorrectOrientation.add(this.enterIncorrectOrientation, this);
+            this.scale.leaveIncorrectOrientation.add(this.leaveIncorrectOrientation, this);
+            this.scale.setScreenSize(true)
+        }
+        this.state.start("preloader")
+    },
+    enterIncorrectOrientation: function() {
+        MainGame.orientated =
+        false;
+        document.getElementById("orientation").style.display = "block"
+    },
+    leaveIncorrectOrientation: function() {
+        MainGame.orientated = true;
+        document.getElementById("orientation").style.display = "none"
+    }
+};
+var textFPS;
+function showFps() {
+    game.time.advancedTiming = true;
+    textFPS = game.add.text(20, 20, "FPS", {
+        font: "30px Arial",
+        fill: "#FFFFFF",
+        align: "center"
+    })
+}
+function trace(a) {
+    console.log(a)
+}
+function clickLogo() {
+    var win = window.open("http://a10.com", "_blank");
+    win.focus()
+};
+MainGame.Game = function(game) {
+    this.game;
+    this.add;
+    this.camera;
+    this.cache;
+    this.input;
+    this.load;
+    this.math;
+    this.sound;
+    this.stage;
+    this.time;
+    this.tweens;
+    this.world;
+    this.particles;
+    this.physics;
+    this.rnd;
+    this.cursors = null;
+    this.finalScreen = null;
+    this.layerPlayer = null;
+    this.bullets = null;
+    this.balka1_1 = null;
+    this.balka1_2 = null;
+    this.balka2_1 = null;
+    this.balka2_2 = null;
+    this.balka3_1 = null;
+    this.balka3_2 = null;
+    this.forest = null;
+    this.hummer1_1 = null;
+    this.hummer1_2 = null;
+    this.hummer2_1 = null;
+    this.hummer2_2 = null;
+    this.hummer3_1 = null;
+    this.hummer3_2 = null;
+    this.box1_1 = null;
+    this.box1_2 = null;
+    this.box2_1 = null;
+    this.box2_2 = null;
+    this.box3_1 = null;
+    this.box3_2 = null;
+    this.text_ready = null;
+    this.text_tutorial = null;
+    this.windowScore = null;
+    this.score = 0;
+    this.best_score = 0;
+    this.balkaGo1 = 0;
+    this.balkaGo2 = 0;
+    this.balkaGo3 = 0
+};
+MainGame.Game.prototype = {
+    randomPos: function(telo1, telo2) {
+        var rnd = 25 * getRandomInt(-5, 5);
+        telo1.body.x =- 280 + rnd;
+        telo2.body.x = telo1.body.x + 750
+    },
+    create: function() {
+        this.cursors = game.input.keyboard.createCursorKeys();
+        showFps();
+        tilesprite = game.add.tileSprite(0, 0, 640, 712, "back_sky");
+        this.forest = game.add.sprite(0, 397, "back_forest");
+        this.layerPlayer = game.add.group();
+        this.panelScreen = game.add.group();
+        this.fixedScreen = game.add.group();
+        this.bullets = this.layerPlayer.add(game.add.group());
+        this.bullets.enableBody =
+        true;
+        this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
+        mouse = this.layerPlayer.add(game.add.sprite(320, 550, "bear"));
+        mouse.anchor.setTo(.5, .6);
+        mouse.animations.add("bear_run", Phaser.Animation.generateFrameNames("bear_run_", 0, 4, "", 4), 30, true);
+        mouse.animations.add("bear_start", Phaser.Animation.generateFrameNames("bear_start_", 0, 20, "", 4), 30, true);
+        mouse.animations.add("bear_stop", Phaser.Animation.generateFrameNames("bear_stop_", 0, 1, "", 4), 30, true);
+        mouse.animations.add("bear_kick", Phaser.Animation.generateFrameNames("bear_kick_",
+        0, 1, "", 4), 30, true);
+        mouse.animations.play("bear_stop");
+        mouse.events.onAnimationComplete.add(this.moleFinishedAnimation, this);
+        mouse.animations.stop();
+        this.physics.startSystem(Phaser.Physics.ARCADE);
+        game.input.onDown.add(this.clickOnStage, this);
+        game.physics.arcade.enable(mouse);
+        mouse.body.setSize(45, 45, 0, 0);
+        isGameOver = false;
+        whatDirection = true;
+        isPlayGame = false;
+        isTapToStart = false;
+        var rnd = 25 * getRandomInt(-5, 5);
+        var par1 =- 280 + rnd;
+        var par2 = par1 + 750;
+        balka1_1 = this.bullets.create(par1, 0, "ground");
+        balka1_2 = this.bullets.create(par2,
+        0, "ground");
+        this.hummer1_1 = this.layerPlayer.add(game.add.sprite(balka1_1.x + 400, balka1_1.y + 60, "hummer"));
+        this.hummer1_1.animations.add("go_hummer");
+        this.hummer1_1.animations.play("go_hummer", 30, true);
+        this.hummer1_1.anchor.setTo(.5, .5);
+        game.physics.arcade.enable(this.hummer1_1);
+        hummer = this.hummer1_1;
+        this.box1_1 = this.bullets.create(balka1_1.x + 400, balka1_1.y + 100, "box");
+        this.box1_1.anchor.setTo(.5, .5);
+        this.hummer1_2 = this.layerPlayer.add(game.add.sprite(balka1_2.x + 50, balka1_2.y + 60, "hummer"));
+        this.hummer1_2.animations.add("go_hummer");
+        this.hummer1_2.animations.play("go_hummer", 30, true);
+        this.hummer1_2.anchor.setTo(.5, .5);
+        game.physics.arcade.enable(this.hummer1_2);
+        this.box1_2 = this.bullets.create(balka1_2.x + 50, balka1_2.y + 100, "box");
+        this.box1_2.anchor.setTo(.5, .5);
+        var rnd = 25 * getRandomInt(-5, 5);
+        var par1 =- 280 + rnd;
+        var par2 = par1 + 750;
+        balka2_1 = this.bullets.create(par1, -350-10, "ground");
+        balka2_2 = this.bullets.create(par2, -350-10, "ground");
+        this.hummer2_1 = this.layerPlayer.add(game.add.sprite(balka2_1.x + 400, balka2_1.y + 60, "hummer"));
+        this.hummer2_1.animations.add("go_hummer");
+        this.hummer2_1.animations.play("go_hummer", 30, true);
+        this.hummer2_1.anchor.setTo(.5, .5);
+        game.physics.arcade.enable(this.hummer2_1);
+        this.box2_1 = this.bullets.create(balka2_1.x + 400, balka2_1.y + 100, "box");
+        this.box2_1.anchor.setTo(.5, .5);
+        this.hummer2_2 = this.layerPlayer.add(game.add.sprite(balka2_2.x + 50, balka2_2.y + 60, "hummer"));
+        this.hummer2_2.animations.add("go_hummer");
+        this.hummer2_2.animations.play("go_hummer", 30, true);
+        this.hummer2_2.anchor.setTo(.5, .5);
+        game.physics.arcade.enable(this.hummer2_2);
+        this.box2_2 =
+        this.bullets.create(balka2_2.x + 50, balka2_2.y + 100, "box");
+        this.box2_2.anchor.setTo(.5, .5);
+        var rnd = 25 * getRandomInt(-5, 5);
+        var par1 =- 280 + rnd;
+        var par2 = par1 + 750;
+        balka3_1 = this.bullets.create(par1, -700-20, "ground");
+        balka3_2 = this.bullets.create(par2, -700-20, "ground");
+        this.hummer3_1 = this.layerPlayer.add(game.add.sprite(balka3_1.x + 400, balka3_1.y + 60, "hummer"));
+        this.hummer3_1.animations.add("go_hummer");
+        this.hummer3_1.animations.play("go_hummer", 30, true);
+        this.hummer3_1.anchor.setTo(.5, .5);
+        game.physics.arcade.enable(this.hummer3_1);
+        this.box3_1 = this.bullets.create(balka3_1.x + 400, balka3_1.y + 100, "box");
+        this.box3_1.anchor.setTo(.5, .5);
+        this.hummer3_2 = this.layerPlayer.add(game.add.sprite(balka3_2.x + 50, balka3_2.y + 60, "hummer"));
+        this.hummer3_2.animations.add("go_hummer");
+        this.hummer3_2.animations.play("go_hummer", 30, true);
+        this.hummer3_2.anchor.setTo(.5, .5);
+        game.physics.arcade.enable(this.hummer3_2);
+        this.box3_2 = this.bullets.create(balka3_2.x + 50, balka3_2.y + 100, "box");
+        this.box3_2.anchor.setTo(.5, .5);
+        balka1_1.anchor.setTo(0, .5);
+        balka1_2.anchor.setTo(0,
+        .5);
+        balka2_1.anchor.setTo(0, .5);
+        balka2_2.anchor.setTo(0, .5);
+        balka3_1.anchor.setTo(0, .5);
+        balka3_2.anchor.setTo(0, .5);
+        this.box1_1.alpha = 0;
+        this.box1_2.alpha = 0;
+        this.box2_1.alpha = 0;
+        this.box2_2.alpha = 0;
+        this.box3_1.alpha = 0;
+        this.box3_2.alpha = 0;
+        var rand_gammer = getRandomInt(0, 69);
+        this.hummer1_1.animations.currentAnim.frame = rand_gammer;
+        this.hummer1_2.animations.currentAnim.frame = rand_gammer;
+        rand_gammer = getRandomInt(0, 69);
+        this.hummer2_1.animations.currentAnim.frame = rand_gammer;
+        this.hummer2_2.animations.currentAnim.frame =
+        rand_gammer;
+        rand_gammer = getRandomInt(0, 69);
+        this.hummer3_1.animations.currentAnim.frame = rand_gammer;
+        this.hummer3_2.animations.currentAnim.frame = rand_gammer;
+        this.text_ready = this.add.sprite(320, -100, "getready");
+        this.text_ready.anchor.setTo(.5, .5);
+        game.add.tween(this.text_ready).to({
+            y: 100
+        }, 400, Phaser.Easing.Back.Out).start();
+        this.text_tutorial = this.add.sprite(-100, 300, "tutorial");
+        this.text_tutorial.anchor.setTo(.5, .5);
+        game.add.tween(this.text_tutorial).to({
+            x: 320
+        }, 400, Phaser.Easing.Back.Out).start();
+        this.score =
+        0;
+        this.windowScore = this.fixedScreen.add(game.add.text(300, 70, "0", MainGame.style));
+        this.windowScore.visible = false;
+        this.balkaGo1 = 0;
+        this.balkaGo2 = 0;
+        this.balkaGo3 = 0;
+        this.best_score = 0;
+        if (localStorage["swingChopper_best"] != undefined)
+            this.best_score = localStorage["swingChopper_best"]
+    },
+    addScore: function() {
+        this.score++;
+        this.windowScore.setText(this.score)
+    },
+    update: function() {
+        textFPS.setText("FPS: " + game.time.fps);
+        if (isGameOver) {
+            mouse.body.velocity.y += 25;
+            mouse.angle += 5;
+            return 
+        }
+        if (this.hummer1_1.animations.currentFrame.index <
+        35)
+            this.box1_1.body.x = this.hummer1_1.body.x-0 + this.hummer1_1.animations.currentFrame.index * 4;
+        else 
+            this.box1_1.body.x = this.hummer1_1.body.x + 270 - this.hummer1_1.animations.currentFrame.index * 4;
+        if (this.hummer1_2.animations.currentFrame.index < 35)
+            this.box1_2.body.x = this.hummer1_2.body.x-0 + this.hummer1_2.animations.currentFrame.index * 4;
+        else 
+            this.box1_2.body.x = this.hummer1_2.body.x + 270 - this.hummer1_2.animations.currentFrame.index * 4;
+        if (this.hummer2_1.animations.currentFrame.index < 35)
+            this.box2_1.body.x = this.hummer2_1.body.x -
+            0 + this.hummer2_1.animations.currentFrame.index * 4;
+        else 
+            this.box2_1.body.x = this.hummer2_1.body.x + 270 - this.hummer2_1.animations.currentFrame.index * 4;
+        if (this.hummer2_2.animations.currentFrame.index < 35)
+            this.box2_2.body.x = this.hummer2_2.body.x-0 + this.hummer2_2.animations.currentFrame.index * 4;
+        else 
+            this.box2_2.body.x = this.hummer2_2.body.x + 270 - this.hummer2_2.animations.currentFrame.index * 4;
+        if (this.hummer3_1.animations.currentFrame.index < 35)
+            this.box3_1.body.x = this.hummer3_1.body.x-0 + this.hummer3_1.animations.currentFrame.index *
+        4;
+        else 
+            this.box3_1.body.x = this.hummer3_1.body.x + 270 - this.hummer3_1.animations.currentFrame.index * 4;
+        if (this.hummer3_2.animations.currentFrame.index < 35)
+            this.box3_2.body.x = this.hummer3_2.body.x-0 + this.hummer3_2.animations.currentFrame.index * 4;
+        else 
+            this.box3_2.body.x = this.hummer3_2.body.x + 270 - this.hummer3_2.animations.currentFrame.index * 4;
+        if (!isPlayGame)
+            return;
+        if (whatDirection) {
+            mouse.body.velocity.x += 40;
+            if (mouse.angle < 20)
+                mouse.angle += 2.5
+        } else {
+            mouse.body.velocity.x -= 40;
+            if (mouse.angle>-20)
+                mouse.angle -=
+                2.5
+        }
+        balka1_1.body.velocity.y = 210;
+        balka1_2.body.velocity.y = 210;
+        balka2_1.body.velocity.y = 210;
+        balka2_2.body.velocity.y = 210;
+        balka3_1.body.velocity.y = 210;
+        balka3_2.body.velocity.y = 210;
+        tilesprite.tilePosition.y += 3.5;
+        this.forest.y += 3.5;
+        if (balka1_1.body.y > mouse.body.y && this.balkaGo1 == 0) {
+            this.addScore();
+            this.balkaGo1 = 1
+        }
+        if (balka2_1.body.y > mouse.body.y && this.balkaGo2 == 0) {
+            this.addScore();
+            this.balkaGo2 = 1
+        }
+        if (balka3_1.body.y > mouse.body.y && this.balkaGo3 == 0) {
+            this.addScore();
+            this.balkaGo3 = 1
+        }
+        if (balka1_1.body.y > 1050) {
+            balka1_1.body.y =
+            -150;
+            balka1_2.body.y =- 150;
+            this.randomPos(balka1_1, balka1_2);
+            this.hummer1_1.body.x = balka1_1.body.x + 310;
+            this.hummer1_2.body.x = balka1_2.body.x-30;
+            rand_gammer = getRandomInt(0, 69);
+            this.hummer1_1.animations.currentAnim.frame = rand_gammer;
+            this.hummer1_2.animations.currentAnim.frame = rand_gammer;
+            this.balkaGo1 = 0
+        }
+        if (balka2_1.body.y > 1050) {
+            balka2_1.body.y =- 150;
+            balka2_2.body.y =- 150;
+            this.randomPos(balka2_1, balka2_2);
+            this.hummer2_1.body.x = balka2_1.body.x + 310;
+            this.hummer2_2.body.x = balka2_2.body.x-30;
+            rand_gammer = getRandomInt(0,
+            69);
+            this.hummer2_1.animations.currentAnim.frame = rand_gammer;
+            this.hummer2_2.animations.currentAnim.frame = rand_gammer;
+            this.balkaGo2 = 0
+        }
+        if (balka3_1.body.y > 1050) {
+            balka3_1.body.y =- 150;
+            balka3_2.body.y =- 150;
+            this.randomPos(balka3_1, balka3_2);
+            this.hummer3_1.body.x = balka3_1.body.x + 310;
+            this.hummer3_2.body.x = balka3_2.body.x-30;
+            rand_gammer = getRandomInt(0, 69);
+            this.hummer3_1.animations.currentAnim.frame = rand_gammer;
+            this.hummer3_2.animations.currentAnim.frame = rand_gammer;
+            this.balkaGo3 = 0
+        }
+        this.hummer1_1.body.y = balka1_1.body.y +
+        5;
+        this.hummer1_2.body.y = balka1_2.body.y + 5;
+        this.box1_1.body.y = balka1_1.body.y + 90;
+        this.box1_2.body.y = balka1_2.body.y + 90;
+        this.hummer2_1.body.y = balka2_1.body.y + 5;
+        this.hummer2_2.body.y = balka2_2.body.y + 5;
+        this.box2_1.body.y = balka2_1.body.y + 90;
+        this.box2_2.body.y = balka2_2.body.y + 90;
+        this.hummer3_1.body.y = balka3_1.body.y + 5;
+        this.hummer3_2.body.y = balka3_2.body.y + 5;
+        this.box3_1.body.y = balka3_1.body.y + 90;
+        this.box3_2.body.y = balka3_2.body.y + 90;
+        if (mouse.body.x<-10 || mouse.body.x > 600)
+            this.gameOver();
+        game.physics.arcade.overlap(this.bullets,
+        mouse, this.collisionHandler, null, this)
+    },
+    moleFinishedAnimation: function(sprite, animation) {
+        if (animation.name === "bear_start") {
+            mouse.animations.play("bear_run");
+            isPlayGame = true;
+            this.windowScore.visible = true
+        }
+    },
+    clickOnStage: function() {
+        if (!isTapToStart) {
+            mouse.animations.play("bear_start", 30, false);
+            game.add.tween(this.text_ready).to({
+                y: -100
+            }, 1500, Phaser.Easing.Back.Out).start();
+            game.add.tween(this.text_tutorial).to({
+                x: 1E3
+            }, 1500, Phaser.Easing.Back.Out).start();
+            isTapToStart = true
+        } else 
+            whatDirection=!whatDirection
+    },
+    collisionHandler: function(bullet, veg) {
+        this.gameOver()
+    },
+    gameOver: function() {
+        isGameOver = true;
+        mouse.body.velocity.x = 0;
+        balka1_1.body.velocity.y = 0;
+        balka1_2.body.velocity.y = 0;
+        balka2_1.body.velocity.y = 0;
+        balka2_2.body.velocity.y = 0;
+        balka3_1.body.velocity.y = 0;
+        balka3_2.body.velocity.y = 0;
+        mouse.animations.play("bear_kick", 30, false);
+        this.fixedScreen.visible = true;
+        this.finalScreen = this.fixedScreen.add(game.add.group());
+        this.finalScreen.add(game.add.sprite(100, 240, "ok_lose"));
+        button = this.finalScreen.add(game.add.button(220 -
+        120, 500, "button-play", this.goToReplay));
+        button.inputEnabled = true;
+        button = this.finalScreen.add(game.add.button(220 + 120, 500, "button-share", this.goToShare));
+        button.inputEnabled = true;
+        button = this.finalScreen.add(game.add.button(50, 180, "button-home", this.goToMenu));
+        button.anchor.setTo(.5, .5);
+        button.inputEnabled = true;
+        this.finalScreen.y =- 700;
+        game.add.tween(this.finalScreen).to({
+            y: 0
+        }, 350, Phaser.Easing.Back.Out, true, 400).start();
+        gameover = this.finalScreen.add(game.add.sprite(320, -100, "gameover"));
+        gameover.anchor.setTo(.5,
+        .5);
+        game.add.tween(gameover).to({
+            y: 80
+        }, 800, Phaser.Easing.Back.Out, true, 600).start();
+        var logo = this.finalScreen.add(game.add.sprite(330, 180, "logoA10"));
+        logo.anchor.setTo(.5, .5);
+        logo.inputEnabled = true;
+        logo.events.onInputDown.add(clickLogo, this);
+        logo = this.finalScreen.add(game.add.sprite(320, 650, "button-moregames"));
+        logo.anchor.setTo(.5, .5);
+        logo.inputEnabled = true;
+        logo.events.onInputDown.add(clickLogo, this);
+        this.finalScreen.add(game.add.text(450, 300, String(this.score), MainGame.style2));
+        if (this.best_score <
+        this.score) {
+            localStorage["swingChopper_best"] = this.score;
+            this.best_score = this.score
+        }
+        if (this.score >= 10) {
+            var medal = this.finalScreen.add(game.add.sprite(158, 325, "medal0001"));
+            if (this.score >= 20) {
+                medal.loadTexture("medal0002");
+                if (this.score >= 30)
+                    medal.loadTexture("medal0003")
+                }
+        }
+        this.finalScreen.add(game.add.text(450, 390, String(this.best_score), MainGame.style2));
+        this.windowScore.visible = false
+    },
+    goToReplay: function() {
+        goChangeState("game")
+    },
+    goToShare: function() {
+        clickShare1()
+    },
+    goToMenu: function() {
+        goChangeState("menu")
+    }
+};
+MainGame.MainMenu = function(game) {
+    this.music = null;
+    this.playButton = null;
+    this.layerMenu = null
+};
+MainGame.MainMenu.prototype = {
+    create: function() {
+        game.add.sprite(0, 0, "menu-back");
+        this.layerMenu = game.add.group();
+        this.playButton = this.add.button(320-120, 540, "button-play", this.startGame, this);
+        this.playButton.anchor.setTo(.5, .5);
+        game.add.tween(this.playButton.scale).to({
+            x: 1.1,
+            y: 1.1
+        }, 630, Phaser.Easing.Linear.None).to({
+            x: 1,
+            y: 1
+        }, 630, Phaser.Easing.Linear.None).loop().start();
+        this.playButton = this.add.button(320 + 120, 540, "button-share", this.shareBtn, this);
+        this.playButton.anchor.setTo(.5, .5);
+        var palka = this.add.sprite(-110,
+        220, "ground");
+        palka.anchor.setTo(.5, .5);
+        palka = this.add.sprite(750, 220, "ground");
+        palka.anchor.setTo(.5, .5);
+        var hummer1 = this.add.sprite(320 + 250, 285, "hummer");
+        hummer1.animations.add("go_hummer");
+        hummer1.animations.play("go_hummer", 30, true);
+        hummer1.anchor.setTo(.5, .5);
+        hummer1 = this.add.sprite(320-250, 285, "hummer");
+        hummer1.animations.add("go_hummer");
+        hummer1.animations.play("go_hummer", 30, true);
+        hummer1.anchor.setTo(.5, .5);
+        var menubear = this.layerMenu.add(game.add.sprite(320, 120, "bear"));
+        menubear.anchor.setTo(.5,
+        .6);
+        menubear.animations.add("bear_run", Phaser.Animation.generateFrameNames("bear_run_", 0, 4, "", 4), 30, true);
+        menubear.animations.play("bear_run");
+        var logo = this.layerMenu.add(game.add.sprite(320, 200, "logo"));
+        logo.anchor.setTo(.5, .5);
+        game.add.tween(this.layerMenu).to({
+            y: 20
+        }, 550, Phaser.Easing.Linear.None).to({
+            y: 0
+        }, 550, Phaser.Easing.Linear.None).loop().start();
+        var logo = game.add.sprite(330, 420, "logoA10");
+        logo.anchor.setTo(.5, .5);
+        logo.inputEnabled = true;
+        logo.events.onInputDown.add(clickLogo, this);
+        logo = game.add.sprite(320,
+        650, "button-moregames");
+        logo.anchor.setTo(.5, .5);
+        logo.inputEnabled = true;
+        logo.events.onInputDown.add(clickLogo, this);
+        var text = game.add.text(-50, 0, "0", MainGame.style)
+    },
+    update: function() {},
+    startGame: function(pointer) {
+        goToState("game")
+    },
+    shareBtn: function(pointer) {
+        clickShare1()
+    }
+};
+MainGame.Preloader = function(game) {
+    this.background = null;
+    this.preloadBar = null;
+    this.ready = false
+};
+MainGame.Preloader.prototype = {
+    preload: function() {
+        this.add.sprite(0, 0, "menu-back");
+        this.background = this.add.sprite(this.world.centerX-220, this.world.centerY-50, "preloaderBackground");
+        this.preloadBar = this.add.sprite(this.world.centerX-220, this.world.centerY-50, "preloaderBar");
+        this.load.setPreloadSprite(this.preloadBar);
+        var logo = game.add.sprite(320, 630, "logoA10");
+        logo.anchor.setTo(.5, .5);
+        logo.inputEnabled = true;
+        logo.events.onInputDown.add(clickLogo, this);
+        game.load.image("splashImage", "assets/Splash_Image.png");
+        game.load.atlasJSONHash("bear", "assets/entities/bear.png?r=4", "assets/entities/bear.json?r=4");
+        game.load.atlasJSONHash("hummer", "assets/entities/hummer.png?r=5", "assets/entities/hummer.json?r=5");
+        game.load.image("ground", "assets/entities/platform.png?r=5");
+        game.load.image("box", "assets/entities/box.png?r=3");
+        game.load.image("medal0001", "assets/entities/medal0001.png?r=3");
+        game.load.image("medal0002", "assets/entities/medal0002.png?r=3");
+        game.load.image("medal0003", "assets/entities/medal0003.png?r=3");
+        game.load.image("back_sky", "assets/backgrounds/sky.png?r=2");
+        game.load.image("back_forest", "assets/backgrounds/forest.png?r=2");
+        game.load.image("ok_lose", "assets/backgrounds/ok_lose.png?r=2");
+        game.load.image("button-play", "assets/buttons/btn_play.png?r=7");
+        game.load.image("button-share", "assets/buttons/btn_share.png?r=8");
+        game.load.image("button-home", "assets/buttons/btn_home.png");
+        game.load.image("button-sound1", "assets/buttons/btn_sound_on.png");
+        game.load.image("button-sound2", "assets/buttons/btn_sound_off.png");
+        game.load.image("button-moregames", "assets/buttons/moregames.png");
+        game.load.image("getready", "assets/getready.png?r=3");
+        game.load.image("logo", "assets/logo.png?r=3");
+        game.load.image("tutorial", "assets/tutorial.png?r=3");
+        game.load.image("gameover", "assets/gameover.png?r=3")
+    },
+    create: function() {
+        this.preloadBar.cropEnabled = false
+    },
+    update: function() {
+        this.state.start("menu")
+    }
+};
